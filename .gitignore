@@ -1,4 +1,4 @@
-.gitignore
+.DS_Store
 venv/
 __pycache__/
 token.json
