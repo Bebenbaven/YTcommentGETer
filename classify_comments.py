@@ -4,8 +4,9 @@ import sys
 import pandas as pd
 import joblib
 
-MODEL_PATH = os.path.join("models", "toxic_model.pkl")
-VEC_PATH = os.path.join("models", "tfidf_vectorizer.pkl")
+MODEL_PATH = os.path.join("models_youtube", "youtube_toxic_model.pkl")
+VEC_PATH   = os.path.join("models_youtube", "youtube_tfidf_vectorizer.pkl")
+
 
 def preprocess_text(s: str) -> str:
     if not isinstance(s, str):
@@ -45,6 +46,10 @@ def main():
 
     texts = df["text"].fillna("").map(preprocess_text).tolist()
     X = vectorizer.transform(texts)
+    empty = (X.getnnz(axis=1) == 0).sum()
+    print(f"空ベクトル: {empty}/{X.shape[0]} 件（{empty/X.shape[0]*100:.1f}%）")
+    print("平均特徴数:", X.getnnz(axis=1).mean())
+
 
     # ラベル
     y = model.predict(X)

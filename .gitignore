@@ -1,4 +1,5 @@
 .DS_Store
+メモ
 venv/
 __pycache__/
 token.json
