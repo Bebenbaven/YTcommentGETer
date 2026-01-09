@@ -168,24 +168,52 @@ def save_csv(rows, out_path):
 
 
 if __name__ == "__main__":
-    video_id = input("取得したいYouTube動画IDを入力してください: ").strip()
-    if not video_id:
+    import argparse
+    import os
+    from datetime import datetime
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--video-ids", nargs="*", default=None,
+                        help="動画IDをスペース区切りで複数指定（例: --video-ids id1 id2 id3）")
+    parser.add_argument("--outdir", default="outputs")
+    args = parser.parse_args()
+
+    os.makedirs(args.outdir, exist_ok=True)
+
+    # 動画IDの受け取り：引数があればそれ、なければ対話入力（複数行）
+    if args.video_ids and len(args.video_ids) > 0:
+        video_ids = [v.strip() for v in args.video_ids if v.strip()]
+    else:
+        print("取得したいYouTube動画IDを入力してください（1行=1ID）。終わったら空行で確定：")
+        video_ids = []
+        while True:
+            v = input().strip()
+            if not v:
+                break
+            video_ids.append(v)
+
+    if not video_ids:
         print("動画IDが入力されていません。終了します。")
-        exit(1)
+        raise SystemExit(1)
 
-    rows = fetch_all_threads_with_replies(video_id, limit=None, order="time")
-    rows = dedupe_rows(rows)
+    for i, video_id in enumerate(video_ids, start=1):
+        print(f"\n[{i}/{len(video_ids)}] 取得開始: {video_id} (limit={args.limit})")
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+        rows = fetch_all_threads_with_replies(video_id, limit=args.limit)
 
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"comments_with_replies_{video_id}_{ts}.csv"
-    out_path = os.path.join(OUTPUT_DIR, filename)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        limit_tag = f"limit{args.limit}" if args.limit is not None else "all"
+        out_path = os.path.join(
+            args.outdir,
+            f"comments_with_replies_{video_id}_{limit_tag}_{ts}.csv"
+        )
+        save_csv(rows, out_path)
 
-    save_csv(rows, out_path)
+        top_count = sum(1 for r in rows if r["is_reply"] == 0)
+        rep_count = sum(1 for r in rows if r["is_reply"] == 1)
 
-    top_count = sum(1 for r in rows if r["is_reply"] == 0)
-    rep_count = sum(1 for r in rows if r["is_reply"] == 1)
+        print(f"保存しました: {out_path}")
+        print(f"トップ: {top_count} / 返信: {rep_count} / 合計: {len(rows)}")
 
-    print(f"保存しました: {out_path}")
-    print(f"トップ: {top_count} / 返信: {rep_count} / 合計: {len(rows)}")
+    print("\n!!!!!完了!!!!!")
