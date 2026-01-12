@@ -18,6 +18,10 @@ FIELDS = [
     "text",
     "toxicity_label",
     "toxicity_score",
+    "source",
+    "fetch_limit",
+    "fetch_order",
+    "fetched_at",3
 ]
 
 def fetch_all_threads_with_replies(video_id, limit=None, order="time"):
@@ -159,12 +163,18 @@ def dedupe_rows(rows):
     return uniq
 
 
-def save_csv(rows, out_path):
+def save_csv(rows, out_path, meta=None):
+    # meta を全行に付与
+    if meta:
+        for r in rows:
+            r.update(meta)
+
     # Excelで文字化けしない UTF-8 with BOM
     with open(out_path, "w", newline="", encoding="utf-8-sig") as f:
         w = csv.DictWriter(f, fieldnames=FIELDS)
         w.writeheader()
         w.writerows(rows)
+
 
 
 if __name__ == "__main__":
@@ -176,7 +186,8 @@ if __name__ == "__main__":
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--video-ids", nargs="*", default=None,
                         help="動画IDをスペース区切りで複数指定（例: --video-ids id1 id2 id3）")
-    parser.add_argument("--outdir", default="outputs")
+    parser.add_argument("--outdir", default=os.path.join("outputs", "raw"))
+
     args = parser.parse_args()
 
     os.makedirs(args.outdir, exist_ok=True)
@@ -208,7 +219,14 @@ if __name__ == "__main__":
             args.outdir,
             f"comments_with_replies_{video_id}_{limit_tag}_{ts}.csv"
         )
-        save_csv(rows, out_path)
+        meta = {
+            "source": "youtube",
+            "fetch_limit": args.limit if args.limit is not None else "",
+            "fetch_order": "time",   # 現状 fetch 関数のデフォルトが time のため
+            "fetched_at": ts,
+        }
+        save_csv(rows, out_path, meta=meta)
+
 
         top_count = sum(1 for r in rows if r["is_reply"] == 0)
         rep_count = sum(1 for r in rows if r["is_reply"] == 1)

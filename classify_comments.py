@@ -3,7 +3,11 @@ import re
 import sys
 import pandas as pd
 import joblib
+from datetime import datetime
+import os
 
+SCORED_DIR = os.path.join("outputs", "scored")
+MODEL_NAME = "youtube_tfidf_linearsvc_v1"
 MODEL_PATH = os.path.join("models_youtube", "youtube_toxic_model.pkl")
 VEC_PATH   = os.path.join("models_youtube", "youtube_tfidf_vectorizer.pkl")
 
@@ -64,8 +68,18 @@ def main():
     else:
         df["toxicity_score"] = ""
 
-    base, ext = os.path.splitext(in_path)
-    out_path = f"{base}_scored{ext}"
+    # 出力ディレクトリ作成
+    os.makedirs(SCORED_DIR, exist_ok=True)
+
+    # 判別メタ情報
+    scored_at = datetime.now().strftime("%Y%m%d_%H%M%S")
+    df["model_name"] = MODEL_NAME
+    df["scored_at"] = scored_at
+
+    # raw ファイル名をそのまま使って scored に保存
+    base_name = os.path.basename(in_path).replace(".csv", "")
+    out_path = os.path.join(SCORED_DIR, base_name + "_scored.csv")
+
     df.to_csv(out_path, index=False, encoding="utf-8-sig")
 
     total = len(df)

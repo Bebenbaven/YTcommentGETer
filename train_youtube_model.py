@@ -48,7 +48,7 @@ def main():
     X_train_vec = vectorizer.fit_transform(X_train)
     X_test_vec = vectorizer.transform(X_test)
 
-    model = LinearSVC()
+    model = LinearSVC(class_weight="balanced")
     model.fit(X_train_vec, y_train)
 
     y_pred = model.predict(X_test_vec)
